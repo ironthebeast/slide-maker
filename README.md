@@ -82,6 +82,15 @@ slide-maker/
     └── White Green Minimalist Financial Report Presentation.pptx
 ```
 
+## 연계 스킬
+
+| 상황 | 연계 스킬 |
+|------|----------|
+| 보고서 내용 필요 | report-writer |
+| 전략 분석 필요 | strategy-framework |
+| 콘텐츠로 변환 | content-creator |
+| 레퍼런스 참조 | knowledge-base |
+
 ## 라이선스
 
 개인 및 상업적 사용 가능

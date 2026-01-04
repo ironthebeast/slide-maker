@@ -285,16 +285,169 @@ assets 폴더에 7개의 PPTX 템플릿이 준비되어 있습니다:
 [내용]
 ```
 
-### PPTX 생성 요청 시
+### PPTX 생성 절차 (필수)
 
-MCP 연동이나 python-pptx 사용 시:
+**중요: 새 슬라이드를 디자인하지 말고, 반드시 기존 템플릿의 슬라이드에 텍스트/차트/이미지를 삽입합니다.**
 
-1. 추천 템플릿 선택
-2. Pretendard 폰트 적용
-3. 슬라이드별 내용 채우기
-4. 파일 저장/공유
+#### 1단계: 템플릿 선택 및 복사
+
+```bash
+# 템플릿을 작업 폴더로 복사
+cp ~/.claude/skills/slide-maker/assets/[선택한템플릿].pptx ./output.pptx
+```
+
+#### 2단계: python-pptx로 템플릿 편집
+
+```python
+from pptx import Presentation
+from pptx.util import Inches, Pt
+from pptx.dml.color import RgbColor
+
+# 템플릿 열기
+prs = Presentation('./output.pptx')
+
+# 기존 슬라이드 접근 (템플릿의 n번째 슬라이드)
+slide = prs.slides[0]  # 첫 번째 슬라이드
+
+# 슬라이드의 placeholder에 텍스트 삽입
+for shape in slide.shapes:
+    if shape.has_text_frame:
+        # placeholder 텍스트 확인 후 교체
+        if "제목" in shape.text or "Title" in shape.text:
+            shape.text_frame.paragraphs[0].runs[0].text = "새 제목"
+        elif "부제목" in shape.text or "Subtitle" in shape.text:
+            shape.text_frame.paragraphs[0].runs[0].text = "새 부제목"
+
+# placeholder 인덱스로 직접 접근
+title = slide.shapes.title
+if title:
+    title.text = "슬라이드 제목"
+
+subtitle = slide.placeholders[1]  # 보통 1번이 부제목
+if subtitle:
+    subtitle.text = "부제목 텍스트"
+
+# 저장
+prs.save('./output.pptx')
+```
+
+#### 3단계: 차트 삽입
+
+```python
+from pptx.chart.data import CategoryChartData
+from pptx.enum.chart import XL_CHART_TYPE
+
+# 빈 슬라이드 레이아웃으로 새 슬라이드 추가
+slide_layout = prs.slide_layouts[5]  # 빈 레이아웃
+slide = prs.slides.add_slide(slide_layout)
+
+# 차트 데이터 준비
+chart_data = CategoryChartData()
+chart_data.categories = ['1월', '2월', '3월', '4월']
+chart_data.add_series('매출', (100, 150, 180, 220))
+
+# 차트 삽입
+x, y, cx, cy = Inches(1), Inches(2), Inches(8), Inches(4.5)
+chart = slide.shapes.add_chart(
+    XL_CHART_TYPE.COLUMN_CLUSTERED, x, y, cx, cy, chart_data
+).chart
+```
+
+#### 4단계: 이미지 삽입
+
+```python
+# 이미지 삽입
+slide.shapes.add_picture(
+    'image.png',
+    left=Inches(1),
+    top=Inches(2),
+    width=Inches(4)
+)
+```
+
+#### 5단계: 기존 슬라이드 수정 vs 새 슬라이드 추가
+
+```python
+# 방법 1: 기존 템플릿 슬라이드 수정 (권장)
+existing_slide = prs.slides[2]  # 3번째 슬라이드
+for shape in existing_slide.shapes:
+    if shape.has_text_frame:
+        # 텍스트 교체 로직
+
+# 방법 2: 템플릿 레이아웃으로 새 슬라이드 추가
+layout = prs.slide_layouts[1]  # 템플릿의 레이아웃 사용
+new_slide = prs.slides.add_slide(layout)
+```
+
+### 템플릿 슬라이드 구조 확인
+
+**템플릿 분석 코드 (처음 사용 시 실행):**
+
+```python
+from pptx import Presentation
+
+prs = Presentation('template.pptx')
+
+# 모든 레이아웃 확인
+print("=== 슬라이드 레이아웃 ===")
+for i, layout in enumerate(prs.slide_layouts):
+    print(f"Layout {i}: {layout.name}")
+    for ph in layout.placeholders:
+        print(f"  - placeholder {ph.placeholder_format.idx}: {ph.name}")
+
+# 기존 슬라이드 내용 확인
+print("\n=== 기존 슬라이드 ===")
+for i, slide in enumerate(prs.slides):
+    print(f"\nSlide {i}:")
+    for shape in slide.shapes:
+        if shape.has_text_frame:
+            print(f"  - {shape.name}: '{shape.text[:50]}...'")
+```
+
+### 작업 흐름 (필수 준수)
+
+```
+사용자 요청
+    │
+    ▼
+1. 용도에 맞는 템플릿 선택
+    │
+    ▼
+2. 템플릿 복사 (cp 명령)
+    │
+    ▼
+3. python-pptx로 템플릿 열기
+    │
+    ▼
+4. 기존 슬라이드의 placeholder에 텍스트 삽입
+    │  ├── 제목, 부제목 교체
+    │  ├── 본문 텍스트 교체
+    │  └── 필요시 차트/이미지 추가
+    │
+    ▼
+5. 저장 및 결과물 제공
+```
+
+**⚠️ 금지 사항:**
+- 새로운 슬라이드 디자인을 처음부터 만들지 않습니다
+- 마크다운으로만 슬라이드 내용을 출력하지 않습니다
+- 반드시 템플릿 파일을 사용하여 실제 PPTX를 생성합니다
 
 ---
+
+## 상위 Agent
+
+이 스킬은 **document-agent**의 하위 스킬입니다.
+
+### 연계 스킬
+
+| 상황 | 연계 스킬 |
+|------|----------|
+| 보고서 내용 필요 | report-writer |
+| 전략 분석 필요 | strategy-agent → strategy-framework |
+| 콘텐츠로 변환 | content-agent → content-creator |
+| 레퍼런스 참조 | knowledge-base |
+| MCP 저장 | mcp-guide → Google Slides |
 
 ### 워크플로우 예시
 
